@@ -12,9 +12,19 @@ The method can be used with any line segment detector. We use LSD here, as it wa
 
 ### Compile and run
 
+Instructions tested in Ubuntu 18.04:
+
 ```
-TODO
+sudo apt-get install build-essential libopencv-dev
+mkdir build && cd build
+cmake ..
+make -j
+./fsg_main
 ```
+
+If everything goes well you should be able to see the following demo:
+
+![Demo Result](images/demo-result.jpg)
 
 ### Cite
 

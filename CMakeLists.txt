@@ -4,7 +4,6 @@ project(FSG)
 find_package(OpenCV REQUIRED)
 message( STATUS "OpenCV_FOUND: " ${OpenCV_FOUND})
 message( STATUS "OpenCV_INCLUDE_DIRS: " ${OpenCV_INCLUDE_DIRS})
-message( STATUS "OpenCV_LIBS: " ${OpenCV_LIBS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 file(GLOB_RECURSE LIB_SOURCES "src/*.cpp" "src/*.h")

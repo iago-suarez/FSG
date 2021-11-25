@@ -7,8 +7,7 @@
 using namespace upm;
 
 namespace cv {
-inline void
-segments(cv::Mat img,
+inline void segments(cv::Mat img,
          const upm::Segments& segs,
          const cv::Scalar &color,
          int thickness = 1,
@@ -19,8 +18,7 @@ segments(cv::Mat img,
 }
 }
 
-void
-drawClusters(cv::Mat &img,
+void drawClusters(cv::Mat &img,
              const upm::Segments &segs,
              const upm::SegmentClusters &clusters,
              int thickness = 2,
@@ -101,7 +99,7 @@ int main() {
   cv::segments(img2, filteredSegments, CV_RGB(0, 255, 0));
   cv::segments(img2, noisySegs, CV_RGB(255, 0, 0));
   cv::imshow("Obtained lines", img2);
-  cv::imwrite("../Obtained_lines.png", img);
+  cv::imwrite("../Obtained_lines.png", img2);
 
   cv::waitKey();
 }

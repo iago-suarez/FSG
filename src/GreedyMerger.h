@@ -20,7 +20,7 @@ class GreedyMerger {
   explicit GreedyMerger(cv::Size imgSize);
 
   /**
-   * @brief Merge segments that below to the same line
+   * @brief Merge segments that belong to the same line
    * @param originalSegments The original segments to merge
    * @param mergedLines The output merged lines
    * @param assignations A vector where each element is a vector containing
@@ -29,14 +29,7 @@ class GreedyMerger {
    */
   void mergeSegments(const Segments &originalSegments, Segments &mergedLines, SegmentClusters &assignations);
 
-  // Getters and setters
   void setImageSize(const cv::Size &size);
-  void setNumOrientationBins(int numOrientationBins);
-  void setNumLengthBins(int numLengthBins);
-  void setEndPointError(float endpointError);
-  void setMinSegSize(double minSegSize);
-  void setEndpointsMaxDistance(double maxDistance);
-  void setSegmentsValidator(std::shared_ptr<FastAcontrarioValidator> validator);
 
   /**
    * @brief Builds an histograms of segments by its angle. The histogram will be used to find merging candidates.

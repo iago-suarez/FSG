@@ -1,8 +1,6 @@
 #include "FastAcontrarioValidator.h"
 #include "Utils.h"
 
-#define UPM_DEGREES_TO_RADS 0.01745329252  // (M_PI / 180.0)
-
 namespace upm {
 
 /**
@@ -141,16 +139,12 @@ double FastAcontrarioValidator::candidateValidity(const SegmentsGroupPtr& group,
   double prob_h0 = prod_prob_1st * prod_prob_2nd;
   // As to calculate the number of combinations we need to calculate the
   // factorial and here the factorial is of quantities so large that we can
-  // not store in a double variable, we are going to calculate the neperian
+  // not store in a double variable, we are going to calculate the
   // logarithm of the NFA instead of the NFA.
 
   double logNtests = fastLogCombinations(N, k);
   double logNFA = logNtests + std::log(prob_h0);
   return logNFA;
-}
-
-void FastAcontrarioValidator::setDomainSize(const cv::Size &domainSize) {
-  mDomainSize = domainSize;
 }
 
 }

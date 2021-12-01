@@ -40,12 +40,10 @@ class FastAcontrarioValidator {
 
   // Getters and setters
   inline double getEpsilon() const { return EPSILON; }
-  inline void setMinSegmentsDensity(double minDensity) { MIN_SEG_DENSITY = minDensity; }
-  void setDomainSize(const cv::Size &domainSize);
 
  private:
   /**
-   * @brief Calculate the Neperian logarithm of the number of combinations of N elements taken k by k.
+   * @brief Calculate the logarithm of the number of combinations of N elements taken k by k.
    * @param N Combinations of N elements
    * @param k Taken k by k
    * @return

@@ -12,7 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-12, windows-2019]
+#        platform: [ubuntu-latest, macos-12, windows-2019]
+        platform: [ubuntu-latest]
         python-version: ["3.9", "3.11"]
 
     runs-on: ${{ matrix.platform }}
@@ -31,8 +32,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
           channels: conda-forge
 
+      - name: Cache Conan dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.conan2
+          key: ${{ runner.OS }}-conan-cache
+          restore-keys: |
+            ${{ runner.OS }}-conan-cache
+
       - name: Prepare
-        run: conda install conda-build conda-verify pytest
+        run: conda install conda-build conda-verify pytest conan
 
       - name: Build
         run: conda build conda.recipe

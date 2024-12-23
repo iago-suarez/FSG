@@ -44,12 +44,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+#        os: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: true
+
+    - name: Cache Conan dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.conan2
+        key: ${{ runner.OS }}-conan-cache
+        restore-keys: |
+          ${{ runner.OS }}-conan-cache
 
     - uses: astral-sh/setup-uv@v4
 

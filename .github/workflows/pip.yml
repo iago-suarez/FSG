@@ -20,6 +20,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Cache Conan dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.conan2
+        key: ${{ runner.OS }}-conan-cache
+        restore-keys: |
+          ${{ runner.OS }}-conan-cache
+
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}

@@ -1,11 +1,17 @@
+from pathlib import Path
+
 import pyfsg
 import cv2
 
 IMSHOW = False
 
+
 def test_opencv_lsd():
+    img_path = str(Path(__file__).parent.parent / "images" / "P1080079.jpg")
+    print(f"Reading image from {img_path}")
+
     # Load a grayscale image as uint8
-    gray = cv2.imread("images/P1080079.jpg", cv2.IMREAD_GRAYSCALE)
+    gray = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
     # 1) Basic usage: just get Nx4 lines
     lines = pyfsg.detectLinesOpencvLSD(gray)

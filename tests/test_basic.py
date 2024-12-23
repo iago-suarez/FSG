@@ -135,3 +135,39 @@ def test_get_tangent_line_eqs():
     # Quick check that they are not all zeros
     assert any(coeff != 0 for coeff in line1), "Line1 shouldn't be all zeros."
     assert any(coeff != 0 for coeff in line2), "Line2 shouldn't be all zeros."
+
+
+def test_total_least_squares_and_project_ptn():
+    # totalLeastSquareFitSegmentEndPts
+    segs = np.array([
+        [10, 10, 20, 20],
+        [20, 20, 30, 30],
+        [50, 0, 60, 80],
+    ], dtype=np.float32)
+
+    (a, b, c) = pyfsg.totalLeastSquareFitSegmentEndPts(segs)
+    print("Line eq for all segments: a=%.4f, b=%.4f, c=%.4f" % (a, b, c))
+
+    # getProjectionPtn
+    px, py = pyfsg.projectPointIntoLine([a, b, c], [15, 15])
+    print("Projection of (15,15) on line = (%.2f, %.2f)" % (px, py))
+
+
+def test_filter_segments():
+    # Suppose we have Nx4 segments
+    originalSegs = np.array([
+        [10, 10, 20, 10],
+        [20, 10, 30, 10],
+        [20, 20, 40, 25],
+        [120, 120, 122, 125],
+    ], dtype=np.float32)
+
+    clusters = [[0, 1], [2], [3]]
+    length_threshold = 15.0
+
+    filtered, noisy = pyfsg.filterSegments(originalSegs, clusters, length_threshold)
+
+    expected_filtered = np.array([[10, 10, 30, 10], [20, 20, 40, 25]], dtype=np.float32)
+    expected_noisy = np.array([[120, 120, 122, 125]], dtype=np.float32)
+    np.testing.assert_allclose(filtered, expected_filtered)
+    np.testing.assert_allclose(noisy, expected_noisy)

@@ -186,6 +186,51 @@ static py::object detectLinesOpencvLSD(
     return result;
 }
 
+/**
+ * @brief A free function that wraps totalLeastSquareFitSegmentEndPts.
+ *
+ * @param segsArr  Nx4 float array of segments
+ * @param selected A list of segment indices to use (optional).
+ * @return (a, b, c) in a Python tuple
+ */
+static py::tuple totalLeastSquareFitSegmentEndPts_py(
+    const py::array_t<float> &segsArr,
+    const std::vector<unsigned int> &selected = {}) {
+    auto segs = ndarrayToSegments(segsArr);
+    cv::Vec3d lineEq = upm::totalLeastSquareFitSegmentEndPts(segs, selected);
+    return py::make_tuple(lineEq[0], lineEq[1], lineEq[2]);
+}
+
+static std::pair<float, float> projectPointIntoLine(
+    const std::array<float, 3> &line, // (a, b, c)
+    const std::array<float, 2> &point) // (x, y)
+{
+    // Wrap them in cv::Vec3f and cv::Point2f
+    cv::Vec3f l(line[0], line[1], line[2]);
+    cv::Point2f p(point[0], point[1]);
+    cv::Point2f projected = upm::getProjectionPtn(l, p);
+    return std::make_pair(projected.x, projected.y);
+}
+
+static py::tuple filterSegments_py(const py::array_t<float> &originalSegsArr,
+                                   const std::vector<std::vector<unsigned int> > &clusters,
+                                   double lenThres = 30.0) {
+    // Convert the Nx4 array -> std::vector<cv::Vec4f>
+    std::vector<cv::Vec4f> originalSegs = ndarrayToSegments(originalSegsArr);
+
+    // Prepare outputs
+    std::vector<cv::Vec4f> filteredSegs;
+    std::vector<cv::Vec4f> noisySegs;
+
+    // Call the actual C++ function
+    filterSegments(originalSegs, clusters, filteredSegs, noisySegs, lenThres);
+
+    // Convert results back to NumPy arrays
+    py::array_t<float> filteredArr = segmentsToNdarray(filteredSegs);
+    py::array_t<float> noisyArr = segmentsToNdarray(noisySegs);
+    return py::make_tuple(filteredArr, noisyArr);
+}
+
 //------------------------------------------------------------------------------
 // PYBIND11 MODULE DEFINITION
 //------------------------------------------------------------------------------
@@ -333,6 +378,72 @@ Return:
     }
 )doc"
     );
+
+    m.def("totalLeastSquareFitSegmentEndPts",
+          &totalLeastSquareFitSegmentEndPts_py,
+          py::arg("segments"),
+          py::arg("selectedSegments") = std::vector<unsigned int>{},
+          R"doc(
+Compute the line equation (a,b,c) using total-least-square fitting on the endpoints
+of the given segments.
+
+Parameters
+----------
+segments : numpy.ndarray
+    A float32 array of shape (N,4) with [x1,y1,x2,y2] for each segment.
+selectedSegments : list of int, optional
+    Indices of which segments to include in the fitting. If empty, use all.
+
+Returns
+-------
+(a, b, c) : tuple of float
+    The line equation ax + by + c = 0.
+)doc");
+
+    m.def("projectPointIntoLine",
+          &projectPointIntoLine,
+          py::arg("line"),
+          py::arg("point"),
+          R"doc(
+Compute the projection of a 2D point onto the line ax + by + c = 0.
+
+Parameters
+----------
+line : (a, b, c)
+    The line equation coefficients as a 3-element float array.
+point : (x, y)
+    The 2D point to project.
+
+Returns
+-------
+projected_point : (px, py)
+    The coordinates of the projected point on the line.
+)doc");
+
+    m.def("filterSegments",
+          &filterSegments_py,
+          py::arg("originalSegs"),
+          py::arg("clusters"),
+          py::arg("lenThres") = 30.0,
+          R"doc(
+Filter line segments into 'filteredSegs' or 'noisySegs' based on length or cluster size.
+
+Parameters
+----------
+originalSegs : numpy.ndarray
+    A float32 array of shape (N,4) with [x1,y1,x2,y2] for each segment.
+clusters : list of list of int
+    A Python list of lists, each containing indices into originalSegs that form a cluster.
+lenThres : float
+    The length threshold under which single segments are considered 'noisy'.
+
+Returns
+-------
+(filteredSegs, noisySegs) : (numpy.ndarray, numpy.ndarray)
+    Both arrays have shape (M,4) and (K,4) respectively, containing the filtered
+    and noisy segments in [x1,y1,x2,y2] format.
+)doc");
+
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
 #else

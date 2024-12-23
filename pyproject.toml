@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
   "conan >= 2.11.0",
   "numpy",
+  "opencv-python~=4.10.0"
 ]
 
 [project.optional-dependencies]

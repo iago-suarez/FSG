@@ -80,7 +80,7 @@ static Segments ndarrayToSegments(const py::array_t<float> &arr) {
 static py::array_t<float> segmentsToNdarray(const Segments &segments) {
     const size_t n = segments.size();
     // Create a new NumPy array of shape (n, 4)
-    py::array::ShapeContainer arr_shape{static_cast<py::ssize_t>(n), 4l};
+    std::vector<py::ssize_t> arr_shape = {static_cast<py::ssize_t>(n), 4};
     py::array_t<float> arr(arr_shape);
     py::buffer_info buf = arr.request();
     float *ptr = static_cast<float *>(buf.ptr);

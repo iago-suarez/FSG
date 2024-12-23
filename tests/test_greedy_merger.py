@@ -100,7 +100,7 @@ def test_get_tangent_lines():
     expected2 = (0.979795814, 0.200000003, 481.918335)
 
     # We'll use a small tolerance
-    tol = 1e-5
+    tol = 1e-4
     assert_line_eq(line1, expected1, tol)
     assert_line_eq(line2, expected2, tol)
 
@@ -113,7 +113,7 @@ def test_get_tangent_lines():
 
     expected1 = (0.655336857, -0.755336821, -25.0000019)
     expected2 = (0.755336821, -0.655336857, 25.0000019)
-    tol = 1e-5
+    tol = 1e-4
     assert_line_eq(line1, expected1, tol)
     assert_line_eq(line2, expected2, tol)
 

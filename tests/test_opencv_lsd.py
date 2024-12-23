@@ -2,9 +2,27 @@ from pathlib import Path
 
 import pyfsg
 import numpy as np
-from PIL import Image
+import pytest
 
+
+def skip_if_no_pillow(test_func):
+    """
+    Decorator that skips the test if the Pillow library is not installed.
+    """
+    try:
+        import PIL
+        has_pillow = True
+    except ImportError:
+        has_pillow = False
+    return pytest.mark.skipif(
+        not has_pillow,
+        reason="Pillow (PIL) is not installed"
+    )(test_func)
+
+
+@skip_if_no_pillow
 def test_opencv_lsd():
+    from PIL import Image
     img_path = str(Path(__file__).parent.parent / "images" / "P1080079.jpg")
     print(f"Reading image from {img_path}")
 

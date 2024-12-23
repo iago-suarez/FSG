@@ -1,9 +1,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-
+#include <pybind11/numpy.h>        // for py::array_t
 #include <opencv2/core.hpp>
-#include "GreedyMerger.h"  // your library's header
+
+#include "GreedyMerger.h"  // your library's header that defines upm::GreedyMerger
 
 namespace py = pybind11;
 using namespace upm;
@@ -11,48 +12,67 @@ using namespace upm;
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
-int add(int i, int j) {
-    cv::Vec2f v_i(i, 0);
-    cv::Vec2f v_j(j, 0);
-    cv::Vec2f sum = v_i + v_j;
-    std::cout << "Sum: " << sum << std::endl;
-    return sum(0);
+namespace py = pybind11;
+using namespace upm;
+
+//------------------------------------------------------------------------------
+// HELPER FUNCTIONS: Convert between NumPy arrays (N×4) and Segments
+//------------------------------------------------------------------------------
+
+/**
+ * @brief Convert a NumPy array (N x 4, dtype=float32 or float64) -> Segments.
+ * @param arr Python array, must be 2D with shape [N,4].
+ * @throws std::runtime_error if shape is wrong.
+ */
+static Segments ndarrayToSegments(const py::array_t<float> &arr)
+{
+    // Request buffer info from NumPy array
+    py::buffer_info buf = arr.request();
+
+    if (buf.ndim != 2 || buf.shape[1] != 4) {
+        throw std::runtime_error("Segments array must have shape (N,4)");
+    }
+
+    // Convert to Segments
+    size_t n = buf.shape[0];
+    float *ptr = static_cast<float*>(buf.ptr);
+
+    Segments segments(n);
+    for (size_t i = 0; i < n; ++i) {
+        // each row: (x1, y1, x2, y2)
+        segments[i] = cv::Vec4f(ptr[4*i + 0],
+                                ptr[4*i + 1],
+                                ptr[4*i + 2],
+                                ptr[4*i + 3]);
+    }
+    return segments;
 }
 
+/**
+ * @brief Convert Segments -> NumPy array (N x 4, dtype=float32).
+ * @param segments The C++ vector of segments.
+ * @return A pybind11 array with shape [N,4].
+ */
+static py::array_t<float> segmentsToNdarray(const Segments &segments)
+{
+    const size_t n = segments.size();
+    // Create a new NumPy array of shape (n, 4)
+    py::array_t<float> arr({static_cast<py::ssize_t>(n), 4l});
+    py::buffer_info buf = arr.request();
+    float *ptr = static_cast<float*>(buf.ptr);
 
-// A small helper struct to hold the 4 floats from a "Segment".
-struct PySegment {
-    float x1, y1, x2, y2;
-
-    PySegment() : x1(0.f), y1(0.f), x2(0.f), y2(0.f) {
+    for (size_t i = 0; i < n; ++i) {
+        ptr[4*i + 0] = segments[i][0];
+        ptr[4*i + 1] = segments[i][1];
+        ptr[4*i + 2] = segments[i][2];
+        ptr[4*i + 3] = segments[i][3];
     }
+    return arr;
+}
 
-    PySegment(float x1_, float y1_, float x2_, float y2_)
-        : x1(x1_), y1(y1_), x2(x2_), y2(y2_) {
-    }
-
-    explicit PySegment(const Segment &seg) {
-        x1 = seg[0];
-        y1 = seg[1];
-        x2 = seg[2];
-        y2 = seg[3];
-    }
-
-    [[nodiscard]] Segment toSegment() const {
-        Segment s;
-        s[0] = x1;
-        s[1] = y1;
-        s[2] = x2;
-        s[3] = y2;
-        return s;
-    }
-};
-
-using PySegments = std::vector<PySegment>;
-
-PYBIND11_MAKE_OPAQUE(std::vector<PySegment>);
-
-PYBIND11_MAKE_OPAQUE(std::vector<std::vector<unsigned int>>);
+//------------------------------------------------------------------------------
+// PYBIND11 MODULE DEFINITION
+//------------------------------------------------------------------------------
 
 PYBIND11_MODULE(_pyfsg, m) {
     m.doc() = R"pbdoc(
@@ -68,92 +88,92 @@ PYBIND11_MODULE(_pyfsg, m) {
            subtract
     )pbdoc";
 
-    py::class_<PySegment>(m, "Segment")
-            .def(py::init<>())
-            .def(py::init<float, float, float, float>(),
-                 py::arg("x1"), py::arg("y1"),
-                 py::arg("x2"), py::arg("y2"))
-            .def_readwrite("x1", &PySegment::x1)
-            .def_readwrite("y1", &PySegment::y1)
-            .def_readwrite("x2", &PySegment::x2)
-            .def_readwrite("y2", &PySegment::y2);
-
-    // Wrap vector of PySegment as "Segments"
-    py::bind_vector<std::vector<PySegment> >(m, "Segments");
-
-    // Wrap vector<vector<unsigned int>> as "SegmentClusters"
-    py::bind_vector<std::vector<std::vector<unsigned int> > >(m, "SegmentClusters");
-
     py::class_<GreedyMerger>(m, "GreedyMerger")
-            .def(py::init([](int width, int height) {
-                     return std::make_unique<GreedyMerger>(cv::Size(width, height));
-                 }),
-                 py::arg("width") = 800, py::arg("height") = 480)
-            .def("setImageSize",
-                 [](GreedyMerger &self, int width, int height) {
-                     self.setImageSize(cv::Size(width, height));
-                 },
-                 py::arg("width"), py::arg("height"))
-            .def("mergeSegments",
-                 [](GreedyMerger &self, const std::vector<PySegment> &pySegs) {
-                     Segments in;
-                     in.reserve(pySegs.size());
-                     for (auto &ps: pySegs) in.push_back(ps.toSegment());
+        // Constructor from width, height
+        .def(py::init([](int width, int height) {
+            return std::make_unique<GreedyMerger>(cv::Size(width, height));
+        }),
+        py::arg("width") = 800,
+        py::arg("height") = 480,
+        "Construct a GreedyMerger for an image of size (width, height).")
 
-                     Segments out;
-                     SegmentClusters clusters;
-                     self.mergeSegments(in, out, clusters);
+        // setImageSize
+        .def("setImageSize",
+             [](GreedyMerger &self, int width, int height) {
+                 self.setImageSize(cv::Size(width, height));
+             },
+             py::arg("width"), py::arg("height"),
+             "Change the internal image size used by the merger.")
 
-                     // Convert output segments back to Python-friendly structure
-                     std::vector<PySegment> pyOut;
-                     pyOut.reserve(out.size());
-                     for (auto &seg: out) {
-                         pyOut.emplace_back(seg);
-                     }
-                     // Return them as (mergedSegments, clusters)
-                     return std::make_pair(pyOut, clusters);
-                 },
-                 py::arg("segments"))
-            .def_static("getOrientationHistogram",
-                        [](const std::vector<PySegment> &pySegs, int bins) {
-                            Segments in;
-                            in.reserve(pySegs.size());
-                            for (auto &ps: pySegs) in.push_back(ps.toSegment());
-                            return GreedyMerger::getOrientationHistogram(in, bins);
-                        },
-                        py::arg("segments"), py::arg("bins") = 90)
-            .def_static("partialSortByLength",
-                        [](const std::vector<PySegment> &pySegs,
-                           int bins, int width, int height) {
-                            Segments in;
-                            in.reserve(pySegs.size());
-                            for (auto &ps: pySegs) in.push_back(ps.toSegment());
-                            return GreedyMerger::partialSortByLength(
-                                in, bins, cv::Size(width, height)
-                            );
-                        },
-                        py::arg("segments"), py::arg("bins"),
-                        py::arg("width"), py::arg("height"))
-            .def_static("getTangentLineEqs",
-                        [](const PySegment &pySeg, float radius) {
-                            auto eq = GreedyMerger::getTangentLineEqs(pySeg.toSegment(), radius);
-                            py::tuple l1 = py::make_tuple(eq.first[0], eq.first[1], eq.first[2]);
-                            py::tuple l2 = py::make_tuple(eq.second[0], eq.second[1], eq.second[2]);
-                            return py::make_tuple(l1, l2);
-                        },
-                        py::arg("segment"), py::arg("radius"));
+        // mergeSegments
+        //
+        //  In C++: void mergeSegments(const Segments &original, Segments &merged, SegmentClusters &clusters)
+        //  We'll accept a NumPy array for `original` and return two things:
+        //   1) a NumPy array (N x 4) for `merged`
+        //   2) a Python list of lists of int for `clusters`
+        .def("mergeSegments",
+             [](GreedyMerger &self, const py::array_t<float> &arr) {
+                 // Convert from NumPy => Segments
+                 Segments original = ndarrayToSegments(arr);
 
-    m.def("add", &add, R"pbdoc(
-            Add two numbers
+                 // Prepare outputs
+                 Segments merged;
+                 SegmentClusters clusters;
 
-            Some other explanation about the add function.
-        )pbdoc");
+                 // Call the actual C++ method
+                 self.mergeSegments(original, merged, clusters);
 
-    m.def("subtract", [](int i, int j) { return i - j; }, R"pbdoc(
-            Subtract two numbers
+                 // Convert merged back to a NumPy array
+                 py::array_t<float> mergedArr = segmentsToNdarray(merged);
 
-            Some other explanation about the subtract function.
-        )pbdoc");
+                 // Return a (mergedArr, clusters) tuple
+                 return py::make_tuple(mergedArr, clusters);
+             },
+             py::arg("segments"),
+             "Merge input line segments (Nx4 array) that belong to the same line. "
+             "Returns (merged_segments, segment_clusters).")
+
+        // getOrientationHistogram (static)
+        .def_static("getOrientationHistogram",
+                    [](const py::array_t<float> &arr, int bins) {
+                        Segments segs = ndarrayToSegments(arr);
+                        auto clusters = GreedyMerger::getOrientationHistogram(segs, bins);
+                        return clusters;  // automatically converted to Python list-of-lists
+                    },
+                    py::arg("segments"), py::arg("bins") = 90,
+                    "Build an orientation histogram from an Nx4 array of segments. "
+                    "Returns a list of lists of indices (SegmentClusters).")
+
+        // partialSortByLength (static)
+        .def_static("partialSortByLength",
+                    [](const py::array_t<float> &arr, int bins, int width, int height) {
+                        Segments segs = ndarrayToSegments(arr);
+                        auto sortedIndices = GreedyMerger::partialSortByLength(
+                            segs, bins, cv::Size(width, height));
+                        return sortedIndices; // automatically converted to Python list of int
+                    },
+                    py::arg("segments"), py::arg("bins"),
+                    py::arg("width"), py::arg("height"),
+                    "Sort Nx4 segments by descending length. Returns list of sorted indices.")
+
+        // getTangentLineEqs (static)
+        .def_static("getTangentLineEqs",
+                    [](const py::array_t<float> &arr, float radius) {
+                        // Expect a single segment, i.e. shape (1,4) or something similar
+                        // but we’ll just read the first row for demonstration
+                        Segments segs = ndarrayToSegments(arr);
+                        if (segs.empty()) {
+                            throw std::runtime_error("Expected at least 1 segment in Nx4 array.");
+                        }
+                        // We'll just use the first one
+                        auto eqs = GreedyMerger::getTangentLineEqs(segs[0], radius);
+                        // eqs.first, eqs.second are cv::Vec3f => (a,b,c)
+                        py::tuple line1 = py::make_tuple(eqs.first[0], eqs.first[1], eqs.first[2]);
+                        py::tuple line2 = py::make_tuple(eqs.second[0], eqs.second[1], eqs.second[2]);
+                        return py::make_tuple(line1, line2);
+                    },
+                    py::arg("segment"), py::arg("radius"),
+                    "Given a single segment (1x4 array) and a radius, returns 2 lines in (a,b,c) form.");
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);

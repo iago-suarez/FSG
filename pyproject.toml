@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core-conan>=0.5.3", "ninja"]
+requires = ["scikit-build-core-conan>=0.5.3", "ninja", "conan>=2.11.0"]
 build-backend = "scikit_build_core_conan.build"
 
 [project]
@@ -25,13 +25,14 @@ classifiers = [
 ]
 
 dependencies = [
-  "conan >= 2.11.0",
   "numpy",
-  "Pillow"
 ]
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = [
+  "pytest",
+  "Pillow"
+]
 
 
 [tool.scikit-build]

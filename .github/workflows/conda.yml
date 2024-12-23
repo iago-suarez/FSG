@@ -1,0 +1,44 @@
+name: Conda
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest, macos-12, windows-2019]
+        python-version: ["3.9", "3.11"]
+
+    runs-on: ${{ matrix.platform }}
+
+    # The setup-miniconda action needs this to activate miniconda
+    defaults:
+      run:
+        shell: "bash -l {0}"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get conda
+        uses: conda-incubator/setup-miniconda@v3.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          channels: conda-forge
+
+      - name: Prepare
+        run: conda install conda-build conda-verify pytest
+
+      - name: Build
+        run: conda build conda.recipe
+
+      - name: Install
+        run: conda install -c ${CONDA_PREFIX}/conda-bld/ pyfsg
+
+      - name: Test
+        run: pytest tests

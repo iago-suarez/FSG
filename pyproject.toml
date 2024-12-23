@@ -1,0 +1,74 @@
+[build-system]
+requires = ["scikit-build-core-conan>=0.5.3"]
+build-backend = "scikit_build_core_conan.build"
+
+[project]
+name = "pyfsg"
+version = "0.0.1"
+description="A minimal example package (with pybind11)"
+readme = "README.md"
+authors = [
+  { name = "Iago Suárez" },
+]
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache 2 License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+  "conan >= 2.11.0",
+  "numpy",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+
+[tool.scikit-build]
+#wheel.expand-macos-universal-tags = true
+#minimum-version = "build-system.requires"
+cmake.args = ["-G Ninja"]
+#cmake.build-type = "RelWithDebInfo"
+#cmake.define = { BUILD_TESTING = "OFF" }
+#wheel.packages = ["python/src/endstone"]
+#wheel.license-files = ["LICENSE"]
+#install.components = ["endstone_wheel"]
+#install.strip = false
+#metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+#sdist.include = ["python/src/endstone/_internal/version.py"]
+
+[tool.scikit-build-core-conan]
+config = ["tools.cmake.cmaketoolchain:generator=Ninja"]
+
+[[tool.scikit-build-core-conan.overrides]]
+if.platform-system = "win32"
+settings = ["compiler.cppstd=17"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+log_cli_level = "INFO"
+filterwarnings = [
+  "error",
+  "ignore::pytest.PytestCacheWarning",
+]
+testpaths = ["tests"]
+
+
+[tool.cibuildwheel]
+build-frontend = "build[uv]"
+test-command = "pytest {project}/tests"
+test-extras = ["test"]
+
+[tool.cibuildwheel.pyodide]
+build-frontend = {name = "build", args = ["--exports", "whole_archive"]}

@@ -57,6 +57,7 @@ void drawClusters(cv::Mat &img,
 }
 
 int main() {
+  constexpr bool IMSHOW = false;
   std::cout << "******************************************************" << std::endl;
   std::cout << "******************** FSG main demo *******************" << std::endl;
   std::cout << "******************************************************" << std::endl;
@@ -82,7 +83,7 @@ int main() {
 
   std::cout << "Detected " << detectedSegments.size() << " line segments with LSD" << std::endl;
   cv::segments(img, detectedSegments, CV_RGB(255, 0, 0), 1);
-  cv::imshow("Detected line segments", img);
+  if (IMSHOW) cv::imshow("Detected line segments", img);
   cv::imwrite("../Detected_line_segments.png", img);
 
   // Detect the segment clusters
@@ -90,7 +91,7 @@ int main() {
   Segments mergedLines;
   merger.mergeSegments(detectedSegments, mergedLines, detectedClusters);
   drawClusters(img, detectedSegments, detectedClusters, 2);
-  cv::imshow("Segment groups", img);
+  if (IMSHOW) cv::imshow("Segment groups", img);
   cv::imwrite("../Segment_groups.png", img);
 
   // Get large lines from groups of segments
@@ -98,8 +99,8 @@ int main() {
   filterSegments(detectedSegments, detectedClusters, filteredSegments, noisySegs);
   cv::segments(img2, filteredSegments, CV_RGB(0, 255, 0));
   cv::segments(img2, noisySegs, CV_RGB(255, 0, 0));
-  cv::imshow("Obtained lines", img2);
+  if (IMSHOW) cv::imshow("Obtained lines", img2);
   cv::imwrite("../Obtained_lines.png", img2);
 
-  cv::waitKey();
+  if (IMSHOW) cv::waitKey();
 }

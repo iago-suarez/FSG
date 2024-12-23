@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core-conan>=0.5.3"]
+requires = ["scikit-build-core-conan>=0.5.3", "ninja"]
 build-backend = "scikit_build_core_conan.build"
 
 [project]
@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
   "conan >= 2.11.0",
   "numpy",
-  "opencv-python"
+  "Pillow"
 ]
 
 [project.optional-dependencies]

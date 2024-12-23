@@ -6,6 +6,7 @@ option(WITH_PYTHON "Compiles Pybind11 Python bindings" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(OpenCV REQUIRED)
 message( STATUS "OpenCV_FOUND: " ${OpenCV_FOUND})

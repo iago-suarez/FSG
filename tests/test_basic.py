@@ -1,15 +1,27 @@
 from __future__ import annotations
 
-import pyfsg as m
+import pyfsg
 
 
 def test_version():
-    assert m.__version__ == "0.0.1"
+    assert pyfsg.__version__ == "0.0.1"
 
 
 def test_add():
-    assert m.add(1, 2) == 3
+    assert pyfsg.add(1, 2) == 3
 
 
 def test_sub():
-    assert m.subtract(1, 2) == -1
+    assert pyfsg.subtract(1, 2) == -1
+
+
+def test_fsg():
+    merger = pyfsg.GreedyMerger(width=640, height=480)
+
+    segments = pyfsg.Segments()
+    segments.append(pyfsg.Segment(0, 0, 100, 100))
+    segments.append(pyfsg.Segment(10, 20, 80, 90))
+
+    merged, clusters = merger.mergeSegments(segments)
+    print("Merged segments:", merged)
+    print("Clusters:", clusters)
